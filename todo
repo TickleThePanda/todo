@@ -1,32 +1,60 @@
 #!/usr/bin/env bash
 
+OPTIND=1
+
 todo_dir=~/documents/todo
 
 latest_file=$(ls $todo_dir -1 | tail -n 1)
-latest_date_string=${latest_file:5:10}
-week_following_latest_date=$(date -d "$latest_date_string + 7 days" +%s)
-
-current_date=$(date +%s)
-
 latest_path=$todo_dir/$latest_file
 
-# create new
-if [ $current_date -gt $week_following_latest_date ];
-then
-  new_path=$todo_dir/todo-$(date -I -d "last-sunday + 1 day").txt
+function open_for_edit {
 
-  # copy to new file and clean up
-  cat $latest_path \
-    | sed -e '/^x.*$/d' \
-    | cat -s \
-    > $new_path
+  latest_date_string=${latest_file:5:10}
 
-  # mark entries that have been carried forward
-  sed -i -e 's/^  /> /' $latest_path
+  week_following_latest_date=$(date -d "$latest_date_string + 7 days" +%s)
 
-  vim $new_path
+  current_date=$(date +%s)
+
+  # create new
+  if [ $current_date -gt $week_following_latest_date ]; then
+    new_path=$todo_dir/todo-$(date -I -d "last-sunday + 1 day").txt
+
+    # copy to new file and clean up
+    cat $latest_path \
+      | sed -e '/^x.*$/d' \
+      | cat -s \
+      > $new_path
+
+    # mark entries that have been carried forward
+    sed -i -e 's/^  /> /' $latest_path
+
+    vim $new_path
+  else
+    vim $latest_path
+  fi
+
+}
+
+function open_for_view {
+  cat $latest_path
+}
+
+mode="edit"
+
+while getopts ":s" opt; do
+  case $opt in
+    s)
+      mode="view"
+    ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit
+    ;;
+  esac
+done
+
+if [ $mode == "edit" ]; then
+  open_for_edit
 else
-  vim $latest_path
+  open_for_view
 fi
-
-
